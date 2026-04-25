@@ -1,0 +1,103 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ইউজারের রোল বা ক্ষমতা নির্ধারণ
+enum UserRole {
+  ADMIN
+  SELLER
+  CUSTOMER
+}
+
+// অর্ডারের বিভিন্ন ধাপ
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// ইউজার টেবিল (সেলার, কাস্টমার, অ্যাডমিন সবাই এখানে থাকবে)
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(CUSTOMER)
+  isBanned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  medicines Medicine[] // একজন সেলার অনেকগুলো ওষুধ অ্যাড করতে পারে
+  orders    Order[]    // একজন কাস্টমার অনেকগুলো অর্ডার করতে পারে
+  reviews   Review[]
+}
+
+// ওষুধের ক্যাটাগরি টেবিল
+model Category {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  medicines Medicine[]
+}
+
+// মেইন ওষুধের টেবিল
+model Medicine {
+  id           String   @id @default(uuid())
+  name         String
+  description  String
+  price        Float
+  stock        Int
+  manufacturer String
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id])
+  sellerId     String
+  seller       User     @relation(fields: [sellerId], references: [id])
+  
+  orderItems   OrderItem[]
+  reviews      Review[]
+  createdAt    DateTime    @default(now())
+}
+
+// কাস্টমারের করা অর্ডারের টেবিল
+model Order {
+  id              String      @id @default(uuid())
+  totalAmount     Float
+  status          OrderStatus @default(PENDING)
+  shippingAddress String
+  shippingName    String
+  shippingPhone   String
+  customerId      String
+  customer        User        @relation(fields: [customerId], references: [id])
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+}
+
+// অর্ডারের ভেতরে কোন কোন ওষুধ আছে তার লিস্ট
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
+  quantity   Int
+  price      Float
+}
+
+// কাস্টমারের দেওয়া রিভিউ টেবিল
+model Review {
+  id         String   @id @default(uuid())
+  rating     Int
+  comment    String
+  customerId String
+  customer   User     @relation(fields: [customerId], references: [id])
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
+}
