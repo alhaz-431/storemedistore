@@ -9,7 +9,16 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    
+    // এই লাইনটি যোগ করুন যাতে ওয়ার্নিংটা চলে যায়:
+    "ignoreDeprecations": "6.0",
+    
+    // আগের সেটিংসগুলো ঠিকঠাক থাকবে:
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
