@@ -1,25 +1,16 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
+import { AuthRequest } from "../middleware/authMiddleware";
 
-export const createOrder = async (req: any, res: Response) => {
+// CREATE ORDER
+export const createOrder = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.userId;
 
-    const {
-      items,
-      shippingAddress,
-      shippingName,
-      shippingPhone,
-    } = req.body;
-
-    // ❌ validation
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: "Cart is empty" });
-    }
+    const { items, shippingAddress, shippingName, shippingPhone } = req.body;
 
     let totalAmount = 0;
 
-    // ✅ validate + calculate total
     for (const item of items) {
       const medicine = await prisma.medicine.findUnique({
         where: { id: item.medicineId },
@@ -29,24 +20,16 @@ export const createOrder = async (req: any, res: Response) => {
         return res.status(404).json({ message: "Medicine not found" });
       }
 
-      if (medicine.stock < item.quantity) {
-        return res.status(400).json({
-          message: `Not enough stock for ${medicine.name}`,
-        });
-      }
-
       totalAmount += medicine.price * item.quantity;
     }
 
-    // ✅ create order
     const order = await prisma.order.create({
       data: {
-        customerId: userId, // ✅ FIXED (IMPORTANT)
+        customerId: userId!,
         totalAmount,
         shippingAddress,
         shippingName,
         shippingPhone,
-
         items: {
           create: items.map((item: any) => ({
             medicineId: item.medicineId,
@@ -56,33 +39,33 @@ export const createOrder = async (req: any, res: Response) => {
         },
       },
       include: {
-        items: {
-          include: {
-            medicine: true,
-          },
-        },
-        customer: true,
+        items: true,
       },
     });
 
-    // ✅ reduce stock after order success
-    for (const item of items) {
-      await prisma.medicine.update({
-        where: { id: item.medicineId },
-        data: {
-          stock: {
-            decrement: item.quantity,
-          },
-        },
-      });
-    }
-
-    res.status(201).json({
-      message: "Order placed successfully",
-      order,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Order failed", err });
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: "Order failed", error });
   }
+};
+
+// GET MY ORDERS (CUSTOMER)
+export const getMyOrders = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.userId;
+
+  const orders = await prisma.order.findMany({
+    where: { customerId: userId },
+    include: { items: true },
+  });
+
+  res.json(orders);
+};
+
+// GET ALL ORDERS (ADMIN)
+export const getAllOrders = async (req: AuthRequest, res: Response) => {
+  const orders = await prisma.order.findMany({
+    include: { items: true },
+  });
+
+  res.json(orders);
 };

@@ -1,17 +1,33 @@
-// src/controllers/categoryController.ts
-import { PrismaClient } from '@prisma/client';
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// এখানে Request, Response কিছুই লাগবে না, শুধু name টা নিলেই হবে
-export const createCategory = async (name: string) => {
-  // Prisma দিয়ে ডাটাবেসে সেভ করছি
-  return await prisma.category.create({
-    data: { name }
-  });
+// CREATE CATEGORY
+export const createCategory = async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Category name required" });
+    }
+
+    const category = await prisma.category.create({
+      data: { name },
+    });
+
+    res.status(201).json(category);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create category", error });
+  }
 };
 
-// এখানেও Request, Response এর প্রয়োজন নেই
-export const getAllCategories = async () => {
-  return await prisma.category.findMany();
+// GET ALL CATEGORIES
+export const getAllCategories = async (req: Request, res: Response) => {
+  try {
+    const categories = await prisma.category.findMany();
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch categories" });
+  }
 };

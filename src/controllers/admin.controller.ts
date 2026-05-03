@@ -1,19 +1,37 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 
-export const getUsers = async (req: Request, res: Response) => {
+// GET ALL USERS
+export const getAllUsers = async (req: Request, res: Response) => {
   const users = await prisma.user.findMany();
   res.json(users);
 };
 
-export const updateUser = async (req: Request, res: Response) => {
+// BAN / UNBAN USER
+export const toggleBanUser = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { isBanned } = req.body;
 
-  const user = await prisma.user.update({
+  const user = await prisma.user.findUnique({
     where: { id },
-    data: { isBanned },
   });
 
-  res.json(user);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { isBanned: !user.isBanned },
+  });
+
+  res.json(updated);
+};
+
+// GET ALL ORDERS
+export const getAllOrders = async (req: Request, res: Response) => {
+  const orders = await prisma.order.findMany({
+    include: { items: true },
+  });
+
+  res.json(orders);
 };
