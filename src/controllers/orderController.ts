@@ -1,85 +1,88 @@
-// src/controllers/orderController.ts
+import { Request, Response } from "express";
+import { prisma } from "../lib/prisma";
 
-import { PrismaClient, OrderStatus } from '@prisma/client';
+export const createOrder = async (req: any, res: Response) => {
+  try {
+    const userId = req.user.id;
 
-const prisma = new PrismaClient();
+    const {
+      items,
+      shippingAddress,
+      shippingName,
+      shippingPhone,
+    } = req.body;
 
-// ১. নতুন অর্ডার তৈরি
-export const createOrder = async (orderData: any, customerId: string) => {
-  const { items, shippingAddress, shippingName, shippingPhone } = orderData;
+    // ❌ validation
+    if (!items || items.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
+    }
 
-  return await prisma.$transaction(async (tx) => {
     let totalAmount = 0;
 
+    // ✅ validate + calculate total
     for (const item of items) {
-      const medicine = await tx.medicine.findUnique({
-        where: { id: item.medicineId }
+      const medicine = await prisma.medicine.findUnique({
+        where: { id: item.medicineId },
       });
 
-      if (!medicine || medicine.stock < item.quantity) {
-        throw new Error(`${medicine?.name || 'Medicine'} পর্যাপ্ত স্টকে নেই!`);
+      if (!medicine) {
+        return res.status(404).json({ message: "Medicine not found" });
+      }
+
+      if (medicine.stock < item.quantity) {
+        return res.status(400).json({
+          message: `Not enough stock for ${medicine.name}`,
+        });
       }
 
       totalAmount += medicine.price * item.quantity;
-
-      await tx.medicine.update({
-        where: { id: item.medicineId },
-        data: { stock: { decrement: item.quantity } }
-      });
     }
 
-    return await tx.order.create({
+    // ✅ create order
+    const order = await prisma.order.create({
       data: {
-        customerId,
+        customerId: userId, // ✅ FIXED (IMPORTANT)
         totalAmount,
         shippingAddress,
         shippingName,
         shippingPhone,
+
         items: {
           create: items.map((item: any) => ({
             medicineId: item.medicineId,
             quantity: item.quantity,
-            price: item.price
-          }))
-        }
+            price: item.price,
+          })),
+        },
       },
-      include: { items: true }
+      include: {
+        items: {
+          include: {
+            medicine: true,
+          },
+        },
+        customer: true,
+      },
     });
-  });
-};
 
-// ২. ইউজার অর্ডার লিস্ট
-export const getUserOrders = async (userId: string) => {
-  return await prisma.order.findMany({
-    where: { customerId: userId },
-    include: { items: { include: { medicine: true } } },
-    orderBy: { createdAt: 'desc' }
-  });
-};
-
-// ৩. সিঙ্গেল অর্ডার ডিটেইলস
-export const getOrderById = async (id: string) => {
-  return await prisma.order.findUnique({
-    where: { id },
-    include: {
-      items: { include: { medicine: true } },
-      customer: { select: { name: true, email: true } }
+    // ✅ reduce stock after order success
+    for (const item of items) {
+      await prisma.medicine.update({
+        where: { id: item.medicineId },
+        data: {
+          stock: {
+            decrement: item.quantity,
+          },
+        },
+      });
     }
-  });
-};
 
-// ৪. অ্যাডমিনের জন্য সব অর্ডার
-export const getAllOrders = async () => {
-  return await prisma.order.findMany({
-    include: { customer: { select: { name: true, email: true } }, items: true },
-    orderBy: { createdAt: 'desc' }
-  });
-};
-
-// ৫. অর্ডার স্ট্যাটাস আপডেট
-export const updateOrderStatus = async (id: string, status: string) => {
-  return await prisma.order.update({
-    where: { id },
-    data: { status: status as OrderStatus }
-  });
+    res.status(201).json({
+      message: "Order placed successfully",
+      order,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Order failed", err });
+  }
 };

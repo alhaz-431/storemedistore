@@ -10,13 +10,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-
-    "ignoreDeprecations": "6.0",
-
     "paths": {
       "@/*": ["./src/*"]
     }
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  }
 }
