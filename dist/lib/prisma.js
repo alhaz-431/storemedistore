@@ -7,4 +7,3 @@ exports.prisma = globalForPrisma.prisma ?? new client_1.PrismaClient();
 if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = exports.prisma;
 }
-y;

@@ -1,59 +1,50 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteMedicine = exports.updateMedicine = exports.getMedicineById = exports.getMedicines = exports.createMedicine = void 0;
-const prisma_1 = require("@/lib/prisma");
+exports.deleteMedicine = exports.updateMedicine = exports.getMedicineById = exports.getAllMedicines = exports.createMedicine = void 0;
+const prisma_1 = require("../lib/prisma");
 // CREATE
 const createMedicine = async (req, res) => {
-    try {
-        const { name, description, price, stock, manufacturer, categoryId } = req.body;
-        const medicine = await prisma_1.prisma.medicine.create({
-            data: {
-                name,
-                description,
-                price: Number(price),
-                stock: Number(stock),
-                manufacturer,
-                categoryId,
-                sellerId: req.user.id,
-            },
-        });
-        res.json(medicine);
-    }
-    catch (err) {
-        res.status(500).json({ message: "Create failed", err });
-    }
+    const sellerId = req.user?.userId;
+    const medicine = await prisma_1.prisma.medicine.create({
+        data: {
+            ...req.body,
+            sellerId,
+        },
+    });
+    res.json(medicine);
 };
 exports.createMedicine = createMedicine;
 // GET ALL
-const getMedicines = async (_, res) => {
-    const medicines = await prisma_1.prisma.medicine.findMany({
-        include: { category: true, seller: true },
-    });
-    res.json(medicines);
+const getAllMedicines = async (req, res) => {
+    const data = await prisma_1.prisma.medicine.findMany();
+    res.json(data);
 };
-exports.getMedicines = getMedicines;
-// GET SINGLE
+exports.getAllMedicines = getAllMedicines;
+// GET BY ID
 const getMedicineById = async (req, res) => {
-    const medicine = await prisma_1.prisma.medicine.findUnique({
-        where: { id: req.params.id },
+    const { id } = req.params;
+    const data = await prisma_1.prisma.medicine.findUnique({
+        where: { id },
     });
-    res.json(medicine);
+    res.json(data);
 };
 exports.getMedicineById = getMedicineById;
 // UPDATE
 const updateMedicine = async (req, res) => {
-    const medicine = await prisma_1.prisma.medicine.update({
-        where: { id: req.params.id },
+    const { id } = req.params;
+    const updated = await prisma_1.prisma.medicine.update({
+        where: { id },
         data: req.body,
     });
-    res.json(medicine);
+    res.json(updated);
 };
 exports.updateMedicine = updateMedicine;
 // DELETE
 const deleteMedicine = async (req, res) => {
+    const { id } = req.params;
     await prisma_1.prisma.medicine.delete({
-        where: { id: req.params.id },
+        where: { id },
     });
-    res.json({ message: "Deleted successfully" });
+    res.json({ message: "Deleted" });
 };
 exports.deleteMedicine = deleteMedicine;

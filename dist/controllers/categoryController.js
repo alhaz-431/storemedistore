@@ -1,19 +1,33 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAllCategories = exports.createCategory = void 0;
-// src/controllers/categoryController.ts
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
-// এখানে Request, Response কিছুই লাগবে না, শুধু name টা নিলেই হবে
-const createCategory = async (name) => {
-    // Prisma দিয়ে ডাটাবেসে সেভ করছি
-    return await prisma.category.create({
-        data: { name }
-    });
+// CREATE CATEGORY
+const createCategory = async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name) {
+            return res.status(400).json({ message: "Category name required" });
+        }
+        const category = await prisma.category.create({
+            data: { name },
+        });
+        res.status(201).json(category);
+    }
+    catch (error) {
+        res.status(500).json({ message: "Failed to create category", error });
+    }
 };
 exports.createCategory = createCategory;
-// এখানেও Request, Response এর প্রয়োজন নেই
-const getAllCategories = async () => {
-    return await prisma.category.findMany();
+// GET ALL CATEGORIES
+const getAllCategories = async (req, res) => {
+    try {
+        const categories = await prisma.category.findMany();
+        res.json(categories);
+    }
+    catch (error) {
+        res.status(500).json({ message: "Failed to fetch categories" });
+    }
 };
 exports.getAllCategories = getAllCategories;
