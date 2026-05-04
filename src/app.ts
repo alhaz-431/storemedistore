@@ -12,28 +12,31 @@ const app: Application = express();
 
 // CORS
 app.use(cors({
-  origin: process.env.NODE_ENV === "production"
-    ? ["https://storefrontend-ten.vercel.app"]
-    : ["http://localhost:3000"],
+  origin: [
+    "http://localhost:3000",
+    "https://storefrontend-ten.vercel.app"
+  ],
   credentials: true
 }));
 
 app.use(express.json());
 
-// Routes
-app.use("/api/admin", adminRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/medicines", medicineRoutes);
-app.use("/api/categories", categoryRoutes);
-app.use("/api/orders", orderRoutes);
+// API versioning (BEST PRACTICE)
+const API = "/api/v1";
+
+app.use(`${API}/admin`, adminRoutes);
+app.use(`${API}/auth`, authRoutes);
+app.use(`${API}/users`, userRoutes);
+app.use(`${API}/medicines`, medicineRoutes);
+app.use(`${API}/categories`, categoryRoutes);
+app.use(`${API}/orders`, orderRoutes);
 
 // Root
 app.get("/", (req: Request, res: Response) => {
   res.send("MediStore API is running perfectly 🚀");
 });
 
-// Not Found
+// 404
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
@@ -41,7 +44,7 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// Error Handler
+// Error handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
 
