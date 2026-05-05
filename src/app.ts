@@ -22,7 +22,7 @@ app.use(cors({
 app.use(express.json());
 
 // API versioning (BEST PRACTICE)
-const API = "/api";
+const API = "/api/v1";
 
 app.use(`${API}/admin`, adminRoutes);
 app.use(`${API}/auth`, authRoutes);
