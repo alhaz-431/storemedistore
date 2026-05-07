@@ -45,10 +45,14 @@ model Category {
 model Medicine {
   id           String   @id @default(uuid())
   name         String
+  slug         String   @unique // এটা কন্ট্রোলারে আছে তাই এখানেও লাগবে
   description  String
   price        Float
   stock        Int
+  image        String?  // ইমেজের জন্য এই ফিল্ডটি অবশ্যই লাগবে
   manufacturer String
+  dosage       String?  // কন্ট্রোলারে আছে তাই যোগ করুন
+  expiryDate   DateTime? // কন্ট্রোলারে আছে তাই যোগ করুন
 
   categoryId   String
   category     Category @relation(fields: [categoryId], references: [id])
