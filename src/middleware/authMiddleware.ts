@@ -28,13 +28,13 @@ export const authMiddleware = (
     // Token verify করো
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "medistore_secret_key_2024") as any;
 
-    // Request এ user info add করো
+    // ✅ সঠিক ম্যাপিং: টোকেনে 'id' আছে, তাই decoded.id নিতে হবে
     req.user = {
-      userId: decoded.userId,
+      userId: decoded.id, // 👈 এখানে 'userId: decoded.userId' এর বদলে 'userId: decoded.id' হবে
       role: decoded.role,
       email: decoded.email || "",
     };
-
+    
     next();
   } catch (error) {
     console.error("Auth Middleware Error:", error);
