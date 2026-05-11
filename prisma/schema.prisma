@@ -32,7 +32,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   medicines Medicine[]
-  orders    Order[] @relation("CustomerOrders")
+  orders    Order[]    @relation("CustomerOrders")
   reviews   Review[]
 }
 
@@ -45,20 +45,20 @@ model Category {
 model Medicine {
   id           String   @id @default(uuid())
   name         String
-  slug         String   @unique // এটা কন্ট্রোলারে আছে তাই এখানেও লাগবে
+  slug         String   @unique
   description  String
   price        Float
   stock        Int
-  image        String?  // ইমেজের জন্য এই ফিল্ডটি অবশ্যই লাগবে
+  image        String?
   manufacturer String
-  dosage       String?  // কন্ট্রোলারে আছে তাই যোগ করুন
-  expiryDate   DateTime? // কন্ট্রোলারে আছে তাই যোগ করুন
+  dosage       String?
+  expiryDate   DateTime?
 
   categoryId   String
   category     Category @relation(fields: [categoryId], references: [id])
 
   sellerId     String
-  seller       User @relation(fields: [sellerId], references: [id])
+  seller       User     @relation(fields: [sellerId], references: [id])
 
   orderItems   OrderItem[]
   reviews      Review[]
@@ -67,6 +67,7 @@ model Medicine {
 
 model Order {
   id              String      @id @default(uuid())
+  orderNumber     String      @unique // আপনার রিকোয়েস্ট অনুযায়ী অ্যাড করা হলো
   totalAmount     Float
   status          OrderStatus @default(PENDING)
   shippingAddress String
@@ -74,17 +75,17 @@ model Order {
   shippingPhone   String
 
   customerId      String
-  customer        User @relation("CustomerOrders", fields: [customerId], references: [id])
+  customer        User        @relation("CustomerOrders", fields: [customerId], references: [id])
 
   items           OrderItem[]
-  createdAt       DateTime @default(now())
+  createdAt       DateTime    @default(now())
 }
 
 model OrderItem {
   id         String   @id @default(uuid())
 
   orderId    String
-  order      Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   medicineId String
   medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
@@ -99,7 +100,7 @@ model Review {
   comment    String
 
   customerId String
-  customer   User @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   medicineId String
   medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
