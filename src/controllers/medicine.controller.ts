@@ -4,32 +4,28 @@ import { AuthRequest } from "../middleware/authMiddleware";
 
 const prisma = new PrismaClient();
 
-// ✅ Create Medicine
+// ✅ Create Medicine (Updated)
 export const createMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { name, description, price, stock, manufacturer, categoryId } = req.body;
     const sellerId = req.user?.userId;
 
-    // ইমেজ চেক (Multer ব্যবহার করলে req.file এ পাবেন)
-    const imagePath = (req as any).file ? (req as any).file.path : null;
-
-    if (!sellerId) return res.status(401).json({ error: "সেলার আইডি পাওয়া যায়নি" });
+    if (!sellerId) return res.status(401).json({ error: "সেলার আইডি পাওয়া যায়নি" });
     if (!name || !price || !stock || !categoryId) {
-      return res.status(400).json({ error: "প্রয়োজনীয় ফিল্ডগুলো পূরণ করুন" });
+      return res.status(400).json({ error: "প্রয়োজনীয় ফিল্ডগুলো পূরণ করুন" });
     }
 
     const medicine = await prisma.medicine.create({
       data: {
         name,
+        // 👇 এই লাইনটি মাস্ট লাগবেই (slug: string)
+        slug: name.toLowerCase().replace(/ /g, "-") + "-" + Date.now(), 
         description: description || "No description",
         price: parseFloat(price),
         stock: parseInt(stock),
         manufacturer: manufacturer || "Unknown",
         categoryId,
         sellerId,
-        // আপনার স্কিমাতে নিচের ফিল্ডগুলো থাকলে এগুলো আনকমেন্ট করবেন:
-        // image: imagePath, 
-        // slug: name.toLowerCase().replace(/ /g, "-") + "-" + Date.now(),
       },
       include: {
         category: true,
@@ -40,7 +36,7 @@ export const createMedicine = async (req: AuthRequest, res: Response) => {
     res.status(201).json({ success: true, data: medicine });
   } catch (error: any) {
     console.error("❌ Create Error:", error);
-    res.status(500).json({ error: "মেডিসিন যোগ করা যায়নি", details: error.message });
+    res.status(500).json({ error: "মেডিসিন যোগ করা যায়নি", details: error.message });
   }
 };
 
