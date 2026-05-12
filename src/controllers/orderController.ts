@@ -115,3 +115,26 @@ export const getAllOrders = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "সব অর্ডার লোড করা যায়নি" });
   }
 };
+
+export const getSingleOrder = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params; 
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { 
+        items: { 
+          include: { medicine: true } 
+        },
+        customer: { select: { name: true, email: true } }
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "অর্ডার খুঁজে পাওয়া যায়নি" });
+    }
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: "অর্ডার ডিটেইলস লোড করা যায়নি" });
+  }
+};
