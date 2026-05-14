@@ -4,7 +4,8 @@ import {
   createOrder,
   getMyOrders,
   getAllOrders,
-  getSingleOrder, // ✅ ১. নতুন ফাংশনটা ইম্পোর্ট করুন
+  getSingleOrder,
+  updateOrderStatus // ✅ ১. নতুন ফাংশনটা ইম্পোর্ট করুন
 } from "../controllers/orderController";
 
 const router = express.Router();
@@ -20,5 +21,6 @@ router.get("/:id", authMiddleware, getSingleOrder);
 
 // ADMIN - all orders (সব অর্ডার দেখা)
 router.get("/", authMiddleware, getAllOrders);
+router.patch('/:id/status', authMiddleware, updateOrderStatus);
 
 export default router;
