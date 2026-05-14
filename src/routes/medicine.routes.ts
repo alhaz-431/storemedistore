@@ -12,7 +12,6 @@ import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
-// স্টোরেজ কনফিগারেশন (আপনারটাই ঠিক আছে)
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, "uploads/");
@@ -25,15 +24,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// PUBLIC ROUTES
+
 router.get("/", getAllMedicines);
 router.get("/:id", getMedicineById);
 
-// PROTECTED ROUTES
-// মেডিসিন অ্যাড করার সময় image ফিল্ড রিসিভ করবে
+
 router.post("/", authMiddleware, upload.single("image"), createMedicine);
 
-// আপডেট করার সময় patch ব্যবহার করা ভালো, এটিও ইমেজ রিসিভ করতে পারবে
+
 router.patch("/:id", authMiddleware, upload.single("image"), updateMedicine);
 
 router.delete("/:id", authMiddleware, deleteMedicine);

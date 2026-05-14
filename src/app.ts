@@ -1,5 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import cors from "cors";
+import path from "path"; // ইমেজ পাথের জন্য এটি প্রয়োজন
 
 import adminRoutes from "./routes/admin.routes";
 import authRoutes from "./routes/auth.routes";
@@ -10,7 +11,7 @@ import orderRoutes from "./routes/order.routes";
 
 const app: Application = express();
 
-// CORS
+// ✅ CORS
 app.use(cors({
   origin: [
     "http://localhost:3000",
@@ -20,6 +21,11 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // FormData হ্যান্ডেল করতে সাহায্য করে
+
+// ✅ ইমেজ এক্সেস করার জন্য স্ট্যাটিক ফোল্ডার কনফিগারেশন
+// এর ফলে https://your-domain.com/uploads/filename.jpg লিংকে ছবি পাওয়া যাবে
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // API versioning (BEST PRACTICE)
 const API = "/api/v1";
@@ -46,7 +52,7 @@ app.use((req: Request, res: Response) => {
 
 // Error handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
+  console.error("🔥 Error Stack:", err.stack);
 
   res.status(err.statusCode || 500).json({
     success: false,
