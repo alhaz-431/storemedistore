@@ -104,7 +104,7 @@ export const getAllOrders = async (req: AuthRequest, res: Response) => {
     const orders = await prisma.order.findMany({
       include: { 
         items: { include: { medicine: true } },
-        // এখানে 'customer' বা 'user' আপনার স্কিমা অনুযায়ী চেক করুন
+        
         customer: { 
           select: { name: true, email: true, image: true } 
         } 

@@ -27,6 +27,7 @@ model User {
   email     String   @unique
   password  String
   role      UserRole @default(CUSTOMER)
+  image     String?  // 👈 এই লাইনটি অবশ্যই যোগ করুন
   isBanned  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

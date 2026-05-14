@@ -15,9 +15,9 @@ const authMiddleware = (req, res, next) => {
         const token = authHeader.split(" ")[1];
         // Token verify করো
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || "medistore_secret_key_2024");
-        // Request এ user info add করো
+        // ✅ সঠিক ম্যাপিং: টোকেনে 'id' আছে, তাই decoded.id নিতে হবে
         req.user = {
-            userId: decoded.userId,
+            userId: decoded.id, // 👈 এখানে 'userId: decoded.userId' এর বদলে 'userId: decoded.id' হবে
             role: decoded.role,
             email: decoded.email || "",
         };
