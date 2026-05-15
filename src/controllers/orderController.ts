@@ -4,7 +4,7 @@ import { AuthRequest } from "../middleware/authMiddleware";
 
 const prisma = new PrismaClient();
 
-// ✅ ১. Create Order
+// ✅ ১. Create Order (কাস্টমারের জন্য)
 export const createOrder = async (req: AuthRequest, res: Response) => {
   try {
     const { items, shippingAddress, shippingName, shippingPhone } = req.body;
@@ -19,15 +19,25 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     let totalAmount = 0;
     const orderItems: any[] = [];
 
+    // আইটেম লুপ চালিয়ে ডেটা প্রসেস করা
     for (const item of items) {
       const medicine = await prisma.medicine.findUnique({ where: { id: item.medicineId } });
+      
       if (!medicine) return res.status(404).json({ error: `মেডিসিন নেই: ${item.medicineId}` });
       if (medicine.stock < item.quantity) return res.status(400).json({ error: `${medicine.name} স্টক আউট` });
 
       totalAmount += medicine.price * item.quantity;
-      orderItems.push({ medicineId: item.medicineId, quantity: item.quantity, price: medicine.price });
+      
+      // ✅ এখানে sellerId অবশ্যই দিতে হবে নাহলে Prisma এরর দিবে
+      orderItems.push({ 
+        medicineId: item.medicineId, 
+        quantity: item.quantity, 
+        price: medicine.price,
+        sellerId: medicine.sellerId 
+      });
     }
 
+    // ডাটাবেসে অর্ডার তৈরি
     const order = await prisma.order.create({
       data: {
         orderNumber: `ORD-${Date.now()}`,
@@ -41,7 +51,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       include: { items: true },
     });
 
-    // স্টক কমানো
+    // সফলভাবে অর্ডার হলে স্টক কমিয়ে দেওয়া
     for (const item of items) {
       await prisma.medicine.update({
         where: { id: item.medicineId },
@@ -51,11 +61,12 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ success: true, message: "অর্ডার সফল!", data: order });
   } catch (error: any) {
+    console.error("❌ Create Order Error:", error);
     res.status(500).json({ error: "অর্ডার ব্যর্থ", details: error.message });
   }
 };
 
-// ✅ ২. Get My Orders
+// ✅ ২. Get My Orders (লগইন করা কাস্টমারের নিজের অর্ডারগুলো)
 export const getMyOrders = async (req: AuthRequest, res: Response) => {
   try {
     const customerId = req.user?.userId;
@@ -66,11 +77,11 @@ export const getMyOrders = async (req: AuthRequest, res: Response) => {
     });
     res.json(orders);
   } catch (error) {
-    res.status(500).json({ error: "লোড করা যায়নি" });
+    res.status(500).json({ error: "অর্ডার লোড করা যায়নি" });
   }
 };
 
-// ✅ ৩. Get All Orders
+// ✅ ৩. Get All Orders (সেলার এবং অ্যাডমিনের জন্য)
 export const getAllOrders = async (req: AuthRequest, res: Response) => {
   try {
     const orders = await prisma.order.findMany({
@@ -86,7 +97,7 @@ export const getAllOrders = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ✅ ৪. Get Single Order
+// ✅ ৪. Get Single Order (অর্ডারের ডিটেইলস দেখা)
 export const getSingleOrder = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params; 
@@ -97,39 +108,40 @@ export const getSingleOrder = async (req: AuthRequest, res: Response) => {
         customer: { select: { name: true, email: true, image: true } }
       },
     });
-    if (!order) return res.status(404).json({ error: "অর্ডার পাওয়া যায়নি" });
+    if (!order) return res.status(404).json({ error: "অর্ডার পাওয়া যায়নি" });
     res.json(order);
   } catch (error) {
-    res.status(500).json({ error: "লোড ব্যর্থ" });
+    res.status(500).json({ error: "অর্ডার লোড ব্যর্থ" });
   }
 };
 
-// ✅ ৫. Update Order Status (ফাইনাল ফিক্স)
+// ✅ ৫. Update Order Status (সেলার যখন স্ট্যাটাস পরিবর্তন করবে)
 export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status } = req.body; // ফ্রন্টএন্ড থেকে { status: "SHIPPED" } এভাবে আসবে
 
-    // ১. আপারকেস চেক
-    const finalStatus = status?.toUpperCase();
+    if (!status) return res.status(400).json({ error: "স্ট্যাটাস পাঠানো হয়নি" });
+
+    const finalStatus = status.toUpperCase();
     const validStatuses = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
     
     if (!validStatuses.includes(finalStatus)) {
       return res.status(400).json({ error: "ভুল স্ট্যাটাস ফরম্যাট" });
     }
 
-    // ২. আপডেট
     const updatedOrder = await prisma.order.update({
       where: { id },
-      data: { status: finalStatus },
+      data: { status: finalStatus as any },
     });
 
     res.status(200).json({ 
       success: true, 
-      message: `স্ট্যাটাস এখন ${finalStatus}`, 
+      message: `অর্ডার এখন ${finalStatus}`, 
       data: updatedOrder 
     });
   } catch (error: any) {
-    res.status(500).json({ error: "আপডেট ব্যর্থ", details: error.message });
+    console.error("❌ Update Order Error:", error);
+    res.status(500).json({ error: "স্ট্যাটাস আপডেট ব্যর্থ", details: error.message });
   }
 };

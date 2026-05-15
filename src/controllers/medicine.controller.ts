@@ -4,31 +4,30 @@ import { AuthRequest } from "../middleware/authMiddleware";
 
 const prisma = new PrismaClient();
 
-// ✅ Create Medicine (ইমেজসহ আপডেট করা হয়েছে)
+// ✅ ১. মেডিসিন তৈরি করা (Create Medicine)
 export const createMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { name, description, price, stock, manufacturer, categoryId } = req.body;
     const sellerId = req.user?.userId;
 
-    // ১. ইমেজ চেক (Multer ব্যবহার করলে এটি req.file এ আসবে)
-    const image = req.file ? req.file.path : null; 
-
     if (!sellerId) return res.status(401).json({ error: "সেলার আইডি পাওয়া যায়নি" });
     
-    // ২. ফিল্ড ভ্যালিডেশন
     if (!name || !price || !stock || !categoryId) {
       return res.status(400).json({ error: "প্রয়োজনীয় ফিল্ডগুলো (নাম, দাম, স্টক, ক্যাটাগরি) পূরণ করুন" });
     }
 
+    // ইমেজ চেক (Multer থেকে আসলে path নিবে)
+    const image = req.file ? req.file.path : null; 
+
     const medicine = await prisma.medicine.create({
       data: {
         name,
-        slug: name.toLowerCase().replace(/ /g, "-") + "-" + Date.now(), 
+        slug: `${name.toLowerCase().replace(/ /g, "-")}-${Date.now()}`, 
         description: description || "No description",
-        price: parseFloat(price),
-        stock: parseInt(stock),
+        price: parseFloat(price.toString()),
+        stock: parseInt(stock.toString()),
         manufacturer: manufacturer || "Unknown",
-        image: image, // ডাটাবেজে ইমেজ পাথ সেভ হবে
+        image: image,
         categoryId,
         sellerId,
       },
@@ -38,27 +37,25 @@ export const createMedicine = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.status(201).json({ success: true, data: medicine });
+    res.status(201).json({ success: true, message: "মেডিসিন সফলভাবে যোগ করা হয়েছে", data: medicine });
   } catch (error: any) {
     console.error("❌ Create Error:", error);
     res.status(500).json({ error: "মেডিসিন যোগ করা যায়নি", details: error.message });
   }
 };
 
-// ✅ Update Medicine (এটি controllers/medicine.controller.ts এ পেস্ট করো)
+// ✅ ২. মেডিসিন আপডেট করা (Update Medicine - Fixed)
 export const updateMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, price, stock, manufacturer, categoryId } = req.body;
     const userId = req.user?.userId;
 
-    // ১. মেডিসিন আছে কি না চেক
+    // মেডিসিনটি আছে কি না চেক
     const existingMedicine = await prisma.medicine.findUnique({ where: { id } });
-    if (!existingMedicine) {
-      return res.status(404).json({ error: "মেডিসিন পাওয়া যায়নি" });
-    }
+    if (!existingMedicine) return res.status(404).json({ error: "মেডিসিন পাওয়া যায়নি" });
 
-    // ২. পারমিশন চেক (ID গুলোকে String এ কনভার্ট করে চেক করা নিরাপদ)
+    // পারমিশন চেক (মালিক বা এডমিন কি না)
     const isOwner = String(existingMedicine.sellerId) === String(userId);
     const isAdmin = req.user?.role === "ADMIN";
 
@@ -66,14 +63,14 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: "আপনার এই মেডিসিনটি এডিট করার অনুমতি নেই" });
     }
 
-    // ৩. নতুন ইমেজ আপলোড হলে সেটি নিবে, নাহলে আগেরটিই থাকবে
+    // ইমেজ চেক
     const image = req.file ? req.file.path : existingMedicine.image;
 
-    // ৪. ডাটা আপডেট
     const updatedMedicine = await prisma.medicine.update({
       where: { id },
       data: {
         name: name || undefined,
+        slug: name ? `${name.toLowerCase().replace(/ /g, "-")}-${Date.now()}` : undefined,
         description: description || undefined,
         price: price ? parseFloat(price.toString()) : undefined,
         stock: stock ? parseInt(stock.toString()) : undefined,
@@ -84,16 +81,14 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
       include: { category: true },
     });
 
-    res.json({ success: true, message: "আপডেট সফল হয়েছে", data: updatedMedicine });
+    res.json({ success: true, message: "আপডেট সফল হয়েছে", data: updatedMedicine });
   } catch (error: any) {
-    console.error("❌ Update Error Details:", error);
-    res.status(500).json({ 
-      error: "আপডেট ব্যর্থ", 
-      details: error.message 
-    });
+    console.error("❌ Update Error:", error);
+    res.status(500).json({ error: "আপডেট ব্যর্থ", details: error.message });
   }
 };
-// ✅ বাকি ফাংশনগুলো (getAll, delete, getById) আগের মতোই থাকবে...
+
+// ✅ ৩. সব মেডিসিন দেখা (Get All Medicines)
 export const getAllMedicines = async (req: Request, res: Response) => {
   try {
     const data = await prisma.medicine.findMany({
@@ -106,24 +101,37 @@ export const getAllMedicines = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteMedicine = async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    await prisma.medicine.delete({ where: { id } });
-    res.json({ message: "সফলভাবে ডিলিট করা হয়েছে" });
-  } catch (err) {
-    res.status(500).json({ error: "ডিলিট করা যায়নি" });
-  }
-};
-
+// ✅ ৪. একটি নির্দিষ্ট মেডিসিন দেখা (Get Single Medicine)
 export const getMedicineById = async (req: Request, res: Response) => {
   try {
     const data = await prisma.medicine.findUnique({
       where: { id: req.params.id },
-      include: { category: true }
+      include: { category: true, seller: { select: { name: true, email: true } } }
     });
+    if (!data) return res.status(404).json({ error: "মেডিসিন পাওয়া যায়নি" });
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: "সার্ভার এরর" });
+  }
+};
+
+// ✅ ৫. মেডিসিন ডিলিট করা (Delete Medicine)
+export const deleteMedicine = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    const medicine = await prisma.medicine.findUnique({ where: { id } });
+    if (!medicine) return res.status(404).json({ error: "মেডিসিন পাওয়া যায়নি" });
+
+    // ডিলিট করার আগে পারমিশন চেক
+    if (String(medicine.sellerId) !== String(userId) && req.user?.role !== "ADMIN") {
+      return res.status(403).json({ error: "আপনার এটি ডিলিট করার অনুমতি নেই" });
+    }
+
+    await prisma.medicine.delete({ where: { id } });
+    res.json({ success: true, message: "সফলভাবে ডিলিট করা হয়েছে" });
+  } catch (err) {
+    res.status(500).json({ error: "ডিলিট করা যায়নি" });
   }
 };
