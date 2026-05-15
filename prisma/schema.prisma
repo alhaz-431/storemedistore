@@ -91,6 +91,7 @@ model OrderItem {
   medicineId String
   medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
 
+  sellerId   String   // ⭐ ADD THIS
   quantity   Int
   price      Float
 }

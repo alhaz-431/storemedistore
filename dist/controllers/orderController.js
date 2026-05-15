@@ -94,7 +94,6 @@ const getAllOrders = async (req, res) => {
         const orders = await prisma.order.findMany({
             include: {
                 items: { include: { medicine: true } },
-                // এখানে 'customer' বা 'user' আপনার স্কিমা অনুযায়ী চেক করুন
                 customer: {
                     select: { name: true, email: true, image: true }
                 }
@@ -133,23 +132,34 @@ const getSingleOrder = async (req, res) => {
 };
 exports.getSingleOrder = getSingleOrder;
 // ✅ ৫. Update Order Status (স্ট্যাটাস পরিবর্তনের ফাংশন)
+// ✅ ৫. Update Order Status (স্ট্যাটাস পরিবর্তনের ফাংশন)
 const updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
+        // ১. চেক করুন আইডি এবং স্ট্যাটাস আসছে কি না
+        if (!id || !status) {
+            return res.status(400).json({ error: "অর্ডার আইডি এবং স্ট্যাটাস আবশ্যক" });
+        }
+        // ২. Prisma দিয়ে আপডেট করুন
         const updatedOrder = await prisma.order.update({
-            where: { id },
-            data: { status },
+            where: { id: id }, // নিশ্চিত করুন আপনার মডেলে 'id' ফিল্ডটি এভাবেই আছে
+            data: { status: status },
         });
+        // ৩. রেসপন্স ফরম্যাট ফ্রন্টএন্ডের সাথে মিল রাখুন
         res.status(200).json({
             success: true,
-            message: `অর্ডার স্ট্যাটাস সফলভাবে ${status} করা হয়েছে`,
+            message: `অর্ডার স্ট্যাটাস সফলভাবে ${status} করা হয়েছে`,
             data: updatedOrder
         });
     }
     catch (error) {
         console.error("❌ Update Status Error:", error);
-        res.status(500).json({ error: "স্ট্যাটাস আপডেট করা যায়নি" });
+        // Prisma এরর হ্যান্ডেলিং (যদি আইডি ভুল হয়)
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: "এই আইডির কোনো অর্ডার পাওয়া যায়নি" });
+        }
+        res.status(500).json({ error: "স্ট্যাটাস আপডেট করা যায়নি", details: error.message });
     }
 };
 exports.updateOrderStatus = updateOrderStatus;
