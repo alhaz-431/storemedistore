@@ -45,45 +45,54 @@ export const createMedicine = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ✅ Update Medicine (ইমেজসহ আপডেট করা হয়েছে)
+// ✅ Update Medicine (এটি controllers/medicine.controller.ts এ পেস্ট করো)
 export const updateMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, price, stock, manufacturer, categoryId } = req.body;
     const userId = req.user?.userId;
 
+    // ১. মেডিসিন আছে কি না চেক
     const existingMedicine = await prisma.medicine.findUnique({ where: { id } });
-    if (!existingMedicine) return res.status(404).json({ error: "মেডিসিন পাওয়া যায়নি" });
+    if (!existingMedicine) {
+      return res.status(404).json({ error: "মেডিসিন পাওয়া যায়নি" });
+    }
 
-    // পারমিশন চেক (সেলার নিজে নাকি বা এডমিন কি না)
-    if (existingMedicine.sellerId !== userId && req.user?.role !== "ADMIN") {
+    // ২. পারমিশন চেক (ID গুলোকে String এ কনভার্ট করে চেক করা নিরাপদ)
+    const isOwner = String(existingMedicine.sellerId) === String(userId);
+    const isAdmin = req.user?.role === "ADMIN";
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: "আপনার এই মেডিসিনটি এডিট করার অনুমতি নেই" });
     }
 
-    // নতুন ইমেজ আপলোড হলে সেটি নিবে, নাহলে আগেরটিই থাকবে
+    // ৩. নতুন ইমেজ আপলোড হলে সেটি নিবে, নাহলে আগেরটিই থাকবে
     const image = req.file ? req.file.path : existingMedicine.image;
 
+    // ৪. ডাটা আপডেট
     const updatedMedicine = await prisma.medicine.update({
       where: { id },
       data: {
         name: name || undefined,
         description: description || undefined,
-        price: price ? parseFloat(price) : undefined,
-        stock: stock ? parseInt(stock) : undefined,
+        price: price ? parseFloat(price.toString()) : undefined,
+        stock: stock ? parseInt(stock.toString()) : undefined,
         manufacturer: manufacturer || undefined,
         categoryId: categoryId || undefined,
-        image: image, // ইমেজ আপডেট
+        image: image, 
       },
       include: { category: true },
     });
 
-    res.json({ success: true, data: updatedMedicine });
+    res.json({ success: true, message: "আপডেট সফল হয়েছে", data: updatedMedicine });
   } catch (error: any) {
-    console.error("❌ Update Error:", error);
-    res.status(500).json({ error: "আপডেট ব্যর্থ", details: error.message });
+    console.error("❌ Update Error Details:", error);
+    res.status(500).json({ 
+      error: "আপডেট ব্যর্থ", 
+      details: error.message 
+    });
   }
 };
-
 // ✅ বাকি ফাংশনগুলো (getAll, delete, getById) আগের মতোই থাকবে...
 export const getAllMedicines = async (req: Request, res: Response) => {
   try {
