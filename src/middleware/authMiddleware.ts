@@ -1,4 +1,3 @@
-// src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
@@ -16,41 +15,48 @@ export const authMiddleware = (
   next: NextFunction
 ) => {
   try {
-    // Authorization header থেকে token নাও
+    // 📡 Authorization header থেকে token নেওয়া হচ্ছে
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No token provided" });
+      return res.status(401).json({ message: "No token provided, please login again." });
     }
 
     const token = authHeader.split(" ")[1];
 
-    // Token verify করো
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "medistore_secret_key_2024") as any;
+    // 🔑 ফিক্স: আপনার .env ফাইলের নতুন সিক্রেট কি-টি এখানে ডিফাইন করা হলো (Fallback সহ)
+    const JWT_SECRET = process.env.JWT_SECRET || "medistore_2026_super_secure_key_9x";
 
-    // ✅ সঠিক ম্যাপিং: টোকেনে 'id' আছে, তাই decoded.id নিতে হবে
+    // Token verify করা হচ্ছে
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+
+    // ✅ আপনার করা সঠিক ম্যাপিং: টোকেনে 'id' আছে, তাই decoded.id নেওয়া হলো
     req.user = {
-      userId: decoded.id, // 👈 এখানে 'userId: decoded.userId' এর বদলে 'userId: decoded.id' হবে
+      userId: decoded.id, 
       role: decoded.role,
       email: decoded.email || "",
     };
     
     next();
-  } catch (error) {
-    console.error("Auth Middleware Error:", error);
-    return res.status(401).json({ error: "Invalid token" });
+  } catch (error: any) {
+    console.error("Auth Middleware Error:", error.message);
+    
+    // ফ্রন্টএন্ডের fetcher যাতে এই মেসেজটি প্রপারলি রিড করতে পারে
+    return res.status(401).json({ 
+      message: "আপনার সেশন শেষ বা টোকেনটি অবৈধ! দয়া করে লগআউট করে আবার লগইন করুন।" 
+    });
   }
 };
 
-// Role check middleware
+// 🛡️ Role check middleware (যেমেন ছিল তেমনই আছে)
 export const checkRole = (...allowedRoles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Forbidden: Access denied" });
+      return res.status(403).json({ message: "Forbidden: Access denied" });
     }
 
     next();
