@@ -27,14 +27,15 @@ model User {
   email     String   @unique
   password  String
   role      UserRole @default(CUSTOMER)
-  image     String?  // 👈 এই লাইনটি অবশ্যই যোগ করুন
+  image     String?
   isBanned  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  medicines Medicine[]
-  orders    Order[]    @relation("CustomerOrders")
-  reviews   Review[]
+  medicines  Medicine[]  @relation("SellerMedicines")
+  orders     Order[]     @relation("CustomerOrders")
+  reviews    Review[]
+  orderItems OrderItem[] @relation("SellerOrderItems")
 }
 
 model Category {
@@ -44,42 +45,45 @@ model Category {
 }
 
 model Medicine {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   name         String
-  slug         String   @unique
+  slug         String    @unique
   description  String
-  price        Float
+  price        Decimal
   stock        Int
   image        String?
   manufacturer String
   dosage       String?
   expiryDate   DateTime?
 
-  categoryId   String
-  category     Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  sellerId     String
-  seller       User     @relation(fields: [sellerId], references: [id])
+  sellerId String
+  seller   User @relation("SellerMedicines", fields: [sellerId], references: [id], onDelete: Cascade)
 
-  orderItems   OrderItem[]
-  reviews      Review[]
-  createdAt    DateTime @default(now())
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Order {
   id              String      @id @default(uuid())
-  orderNumber     String      @unique // আপনার রিকোয়েস্ট অনুযায়ী অ্যাড করা হলো
-  totalAmount     Float
+  orderNumber     String      @unique
+  totalAmount     Decimal
   status          OrderStatus @default(PENDING)
   shippingAddress String
   shippingName    String
   shippingPhone   String
 
-  customerId      String
-  customer        User        @relation("CustomerOrders", fields: [customerId], references: [id])
+  customerId String
+  customer   User @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
 
-  items           OrderItem[]
-  createdAt       DateTime    @default(now())
+  items     OrderItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrderItem {
@@ -91,23 +95,25 @@ model OrderItem {
   medicineId String
   medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
 
-  sellerId   String   // ⭐ ADD THIS
+  sellerId   String?  
+  seller     User? @relation("SellerOrderItems", fields: [sellerId], references: [id])
+
   quantity   Int
-  price      Float
+  price      Decimal
 }
 
 model Review {
-  id         String   @id @default(uuid())
-  rating     Int
-  comment    String
+  id      String @id @default(uuid())
+  rating  Int
+  comment String
 
   customerId String
-  customer   User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   User @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   medicineId String
   medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([customerId, medicineId])
 }
