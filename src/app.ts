@@ -30,12 +30,12 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // API versioning (BEST PRACTICE)
 const API = "/api/v1";
 
-app.use(`${API}/admin`, adminRoutes);
-app.use(`${API}/auth`, authRoutes);
-app.use(`${API}/users`, userRoutes);
-app.use(`${API}/medicines`, medicineRoutes);
-app.use(`${API}/categories`, categoryRoutes);
-app.use(`${API}/orders`, orderRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/medicines", medicineRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/orders", orderRoutes);
 
 // Root
 app.get("/", (req: Request, res: Response) => {
