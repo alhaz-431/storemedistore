@@ -11,11 +11,8 @@ interface AuthenticatedRequest extends Request {
 
 const prisma = new PrismaClient();
 
-/**
- * 🎯 CREATE NEW ORDER (CUSTOMER)
- * Route: POST /api/v1/orders
- * Access: Private (Customer Only)
- */
+
+
 export const createOrder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { items, totalAmount, shippingName, shippingPhone, shippingAddress } = req.body;
