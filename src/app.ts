@@ -23,7 +23,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // FormData হ্যান্ডেল করতে সাহায্য করে
 
-// ✅ ইমেজ এক্সেস করার জন্য স্ট্যাটিক ফোল্ডার কনফিগারেশন
+// ✅ ইমেজ এক্সেс করার জন্য স্ট্যাটিক ফোল্ডার কনফিগারেশন
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // ✅ অ্যাসাইনমেন্ট রিকোয়ারমেন্ট অনুযায়ী ডিরেক্ট এপিআই রাউটিং (কোনো v1 থাকবে না)
