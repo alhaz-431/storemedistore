@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
+// ইউজারের ডেটা টাইপ ডিফাইন করা
 export interface AuthRequest extends Request {
   user?: {
     userId: string;
@@ -14,49 +15,62 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
+  // ১. Authorization হেডার সংগ্রহ করা
+  const authHeader = req.headers.authorization;
+
+  // ২. লগিং (ডিব্যাগিংয়ের জন্য)
+  console.log("--- Auth Check Start ---");
+  console.log("Received Auth Header:", authHeader);
+
+  // ৩. হেডার যাচাই করা
+  if (!authHeader) {
+    console.log("Error: No Authorization header.");
+    return res.status(401).json({ message: "No token provided, please login again." });
+  }
+
+  if (!authHeader.startsWith("Bearer ")) {
+    console.log("Error: Header is not a Bearer token.");
+    return res.status(401).json({ message: "Invalid token format." });
+  }
+
+  // ৪. টোকেন আলাদা করা
+  const token = authHeader.split(" ")[1];
+  const JWT_SECRET = process.env.JWT_SECRET || "medistore_2026_super_secure_key_9x";
+
+  // ৫. টোকেন ভেরিফাই করা
   try {
-    // 📡 Authorization header থেকে token নেওয়া হচ্ছে
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "No token provided, please login again." });
-    }
-
-    const token = authHeader.split(" ")[1];
-
-    // 🔑 ফিক্স: আপনার .env ফাইলের নতুন সিক্রেট কি-টি এখানে ডিফাইন করা হলো (Fallback সহ)
-    const JWT_SECRET = process.env.JWT_SECRET || "medistore_2026_super_secure_key_9x";
-
-    // Token verify করা হচ্ছে
     const decoded = jwt.verify(token, JWT_SECRET) as any;
+    console.log("Token Verified Successfully for User:", decoded.id);
 
-    // ✅ আপনার করা সঠিক ম্যাপিং: টোকেনে 'id' আছে, তাই decoded.id নেওয়া হলো
+    // ৬. ইউজার অবজেক্ট সেট করা
     req.user = {
-      userId: decoded.id, 
+      userId: decoded.id,
       role: decoded.role,
       email: decoded.email || "",
     };
-    
-    next();
+
+    next(); // সবকিছু ঠিক থাকলে নেক্সট রাউটে যাবে
   } catch (error: any) {
-    console.error("Auth Middleware Error:", error.message);
+    console.error("JWT Verification Failed:", error.message);
     
-    // ফ্রন্টএন্ডের fetcher যাতে এই মেসেজটি প্রপারলি রিড করতে পারে
-    return res.status(401).json({ 
-      message: "আপনার সেশন শেষ বা টোকেনটি অবৈধ! দয়া করে লগআউট করে আবার লগইন করুন।" 
-    });
+    // টোকেন এক্সপায়ার হলে বিশেষ মেসেজ
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Session expired. Please login again." });
+    }
+
+    return res.status(401).json({ message: "Invalid or tampered token." });
   }
 };
 
-// 🛡️ Role check middleware (যেমেন ছিল তেমনই আছে)
+// রোল চেকিং মিডেলওয়্যার
 export const checkRole = (...allowedRoles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized access." });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: "Forbidden: Access denied" });
+      return res.status(403).json({ message: "Access denied. Insufficient permissions." });
     }
 
     next();
