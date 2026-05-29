@@ -11,23 +11,28 @@ import {
 
 const router = express.Router();
 
-// ১. নতুন অর্ডার তৈরি করা
+/**
+ * 📦 ORDER ROUTES
+ * Middleware 'authMiddleware' ব্যবহার করা হয়েছে সব রাউটে, 
+ * কারণ অর্ডার দেখার বা করার জন্য ইউজারকে অবশ্যই লগইন থাকতে হবে।
+ */
+
+// ১. নতুন অর্ডার তৈরি করা (কাস্টমার)
 router.post("/", authMiddleware, createOrder);
 
-// ২. সব অর্ডার গেট করা (কাস্টমার, সেলার এবং অ্যাডমিনের রোল ফিল্টারিং এটার ভেতরেই হবে)
+// ২. সব অর্ডার লিস্ট (কাস্টমার, সেলার এবং অ্যাডমিন - এখানে রোলের ওপর ভিত্তি করে ফিল্টারিং হবে)
 router.get("/", authMiddleware, getAllOrders);
 
-// ৩. ব্যাকওয়ার্ড কম্প্যাটিবিলিটি রাউট (যদি ফ্রন্টএন্ডের কোথাও কল করা থাকে)
+// ৩. ব্যাকওয়ার্ড কম্প্যাটিবিলিটি (যদি পুরনো কোনো পেজে এটি কল করা থাকে)
 router.get("/my", authMiddleware, getUserOrders);
 
-// ৪. নির্দিষ্ট একটি অর্ডারের ডিটেইলস দেখা (VIEW DETAILS)
+// ৪. নির্দিষ্ট একটি অর্ডারের ডিটেইলস দেখা
 router.get("/:id", authMiddleware, getSingleOrder);
 
-// 🎯 ৫. কাস্টমার কর্তৃক অর্ডার ক্যানসেল করা (CANCEL ORDER)
-// ফ্রন্টএন্ডের রিকোয়েস্ট ইউআরএল-এর সাথে মিলিয়ে এটিকে /:id/cancel করা হলো
+// ৫. কাস্টমার কর্তৃক অর্ডার ক্যানসেল করা
 router.patch("/:id/cancel", authMiddleware, cancelOrder);
 
-// ৬. অ্যাডমিন কর্তৃক অর্ডারের স্ট্যাটাস আপডেট করা
+// ৬. সেলার বা অ্যাডমিন কর্তৃক অর্ডারের স্ট্যাটাস আপডেট করা
 router.patch("/:id/status", authMiddleware, updateOrderStatus);
 
 export default router;
