@@ -4,16 +4,16 @@ import { AuthRequest } from "../middleware/authMiddleware";
 
 const prisma = new PrismaClient();
 
-// ✅ ১. মেডিসিন তৈরি করা (Create)
+// ১. মেডিসিন তৈরি করা (Create)
 export const createMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { name, description, price, stock, manufacturer, categoryId } = req.body;
     const sellerId = req.user?.userId;
 
-    if (!sellerId) return res.status(401).json({ success: false, error: "সেলার আইডি পাওয়া যায়নি" });
+    if (!sellerId) return res.status(401).json({ success: false, error: "সেলার আইডি পাওয়া যায়নি" });
     
     if (!name || !price || !stock || !categoryId) {
-      return res.status(400).json({ success: false, error: "প্রয়োজনীয় ফিল্ডগুলো পূরণ করুন" });
+      return res.status(400).json({ success: false, error: "প্রয়োজনীয় ফিল্ডগুলো পূরণ করুন" });
     }
 
     const image = req.file ? req.file.path : null; 
@@ -32,13 +32,13 @@ export const createMedicine = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.status(201).json({ success: true, message: "মেডিসিন যোগ হয়েছে", data: medicine });
+    res.status(201).json({ success: true, message: "মেডিসিন যোগ হয়েছে", data: medicine });
   } catch (error: any) {
     res.status(500).json({ success: false, error: "সার্ভার এরর", details: error.message });
   }
 };
 
-// ✅ ২. মেডিসিন আপডেট করা (Update)
+// ২. মেডিসিন আপডেট করা (Update)
 export const updateMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -46,7 +46,7 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
 
     const existingMedicine = await prisma.medicine.findUnique({ where: { id } });
-    if (!existingMedicine) return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
+    if (!existingMedicine) return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
 
     if (String(existingMedicine.sellerId) !== String(userId) && req.user?.role !== "ADMIN") {
       return res.status(403).json({ success: false, error: "অনুমতি নেই" });
@@ -72,42 +72,41 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ✅ ৩. সব মেডিসিন দেখা (Get All - ফিক্সড)
+// ৩. সব মেডিসিন দেখা (Get All)
 export const getAllMedicines = async (req: Request, res: Response) => {
   try {
     const data = await prisma.medicine.findMany({
       include: { category: true, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" }
     });
-    // ✅ ফ্রন্টএন্ডের জন্য স্ট্যান্ডার্ড ফরম্যাট: { success: true, data: [...] }
     res.status(200).json({ success: true, data: data });
   } catch (err) {
-    res.status(500).json({ success: false, error: "ডাটা লোড হয়নি" });
+    res.status(500).json({ success: false, error: "ডাটা লোড হয়নি" });
   }
 };
 
-// ✅ ৪. একটি মেডিসিন দেখা (Get By Id)
+// ৪. একটি মেডিসিন দেখা (Get By Id)
 export const getMedicineById = async (req: Request, res: Response) => {
   try {
     const data = await prisma.medicine.findUnique({
       where: { id: req.params.id },
       include: { category: true }
     });
-    if (!data) return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
+    if (!data) return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
     res.json({ success: true, data: data });
   } catch (err) {
     res.status(500).json({ success: false, error: "সার্ভার এরর" });
   }
 };
 
-// ✅ ৫. মেডিসিন ডিলিট করা (Delete)
+// ৫. মেডিসিন ডিলিট করা (Delete)
 export const deleteMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.user?.userId;
 
     const medicine = await prisma.medicine.findUnique({ where: { id } });
-    if (!medicine) return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
+    if (!medicine) return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
 
     if (String(medicine.sellerId) !== String(userId) && req.user?.role !== "ADMIN") {
       return res.status(403).json({ success: false, error: "অনুমতি নেই" });
@@ -116,6 +115,6 @@ export const deleteMedicine = async (req: AuthRequest, res: Response) => {
     await prisma.medicine.delete({ where: { id } });
     res.json({ success: true, message: "ডিলিট সম্পন্ন" });
   } catch (err) {
-    res.status(500).json({ success: false, error: "ডিলিট করা সম্ভব হয়নি" });
+    res.status(500).json({ success: false, error: "ডিলিট করা সম্ভব হয়নি" });
   }
 };

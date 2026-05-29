@@ -24,16 +24,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-
+// পাবলিক রুটস
 router.get("/", getAllMedicines);
 router.get("/:id", getMedicineById);
 
-
+// প্রোটেক্টেড রুটস (সেলার/এডমিনদের জন্য)
 router.post("/", authMiddleware, upload.single("image"), createMedicine);
-
-
 router.patch("/:id", authMiddleware, upload.single("image"), updateMedicine);
-
 router.delete("/:id", authMiddleware, deleteMedicine);
 
 export default router;
