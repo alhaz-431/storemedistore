@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs"; // 🎯 ফিক্স: ফাইল সিস্টেম মডিউল ইমপোর্ট করা হলো
 import {
   getAllMedicines,
   getMedicineById,
@@ -12,9 +13,15 @@ import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
+// 🎯 ফিক্স: Render সার্ভারে যদি 'uploads' ফোল্ডার না থাকে, তবে এই কোডটি নিজে থেকেই ফোল্ডার বানিয়ে নেবে
+const uploadDir = "uploads/";
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, "uploads/");
+    cb(null, uploadDir); // 🎯 ফিক্স: এখানে ডিরেক্ট ভ্যারিয়েবল পাস করা হলো
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
