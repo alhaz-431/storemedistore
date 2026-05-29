@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
+    userId: string;
     email?: string;
     role?: string;
   };
@@ -19,7 +20,7 @@ const prisma = new PrismaClient();
 export const createOrder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { items, totalAmount, shippingName, shippingPhone, shippingAddress } = req.body;
-    const customerId = req.user?.id; 
+    const customerId = req.user?.id || req.user?.userId; 
 
     if (!customerId) {
       res.status(401).json({ success: false, message: "ইউজার অথেনটিকেশন ব্যর্থ হয়েছে! আবার লগইন করুন।" });
@@ -34,6 +35,7 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
     const result = await prisma.$transaction(async (tx) => {
       const orderItemsData = [];
       
+      // 🎯 কার্টের প্রতিটা ঔষধের জন্য লুপ চলছে (৩টা হোক বা ৫টা, সব আইটেম প্রসেস হবে)
       for (const item of items) {
         const medicine = await tx.medicine.findUnique({
           where: { id: item.medicineId || item.id },
@@ -48,13 +50,10 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
           throw new Error(`দুঃখিত, '${medicine.name}' পর্যাপ্ত স্টক নেই।`);
         }
 
+        // স্টক কমানো হচ্ছে
         await tx.medicine.update({
           where: { id: medicine.id },
-          data: {
-            stock: {
-              decrement: Math.max(1, Number(item.quantity))
-            }
-          }
+          data: { stock: { decrement: Math.max(1, Number(item.quantity)) } }
         });
 
         orderItemsData.push({
@@ -94,21 +93,17 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
 
   } catch (error: any) {
     console.error("❌ Create Order Error:", error);
-    res.status(400).json({ 
-      success: false,
-      message: error.message || "অর্ডার প্রসেস করার সময় সমস্যা হয়েছে।" 
-    });
+    res.status(400).json({ success: false, message: error.message || "অর্ডার প্রসেস করার সময় সমস্যা হয়েছে।" });
   }
 };
 
 /**
  * 👑 GET ORDERS WITH MULTI-ROLE FILTERING (CUSTOMER / SELLER / ADMIN)
  * Route: GET /api/v1/orders
- * Access: Private
  */
 export const getAllOrders = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || req.user?.userId;
     const role = req.user?.role; 
 
     if (!userId) {
@@ -118,11 +113,11 @@ export const getAllOrders = async (req: AuthenticatedRequest, res: Response): Pr
 
     let queryCondition = {};
 
-    // 🎯 ১. রোল যদি CUSTOMER হয়, তবে শুধু তার নিজের অর্ডার ফিল্টার হবে
+    // 🎯 ১. কাস্টমার হলে শুধু তার নিজস্ব অর্ডারগুলো দেখাবে (CANCELLED সহ সব থাকবে)
     if (role === "CUSTOMER") {
       queryCondition = { customerId: userId };
     } 
-    // 🎯 ২. রোল যদি SELLER হয়, তবে শুধু তার নিজের ঔষধের আইটেম ওয়ালা অর্ডারগুলো দেখবে
+    // 🎯 ২. সেলার হলে শুধু তার ওয়ানড প্রোডাক্টের অর্ডার দেখবে
     else if (role === "SELLER") {
       queryCondition = {
         items: {
@@ -132,21 +127,20 @@ export const getAllOrders = async (req: AuthenticatedRequest, res: Response): Pr
         }
       };
     }
-    // 🎯 ৩. ADMIN হলে queryCondition ফাঁকা থাকবে {}, ফলে সব অর্ডার চলে আসবে।
+    // 🎯 ৩. ADMIN হলে queryCondition একদম ফাঁকা {} থাকবে, ফলে সব কাস্টমারের সব অর্ডার অ্যাডমিন দেখতে পাবে।
 
     const orders = await prisma.order.findMany({
       where: queryCondition,
       include: {
         items: {
           include: {
-            medicine: true
+            medicine: true // 🎯 প্রতিটা অর্ডারের ভেতরের সব ঔষধের ডিটেইলস একসাথে তুলে আনা হচ্ছে
           }
         }
       },
       orderBy: { createdAt: "desc" }
     });
 
-    // ফ্রন্টএন্ড সরাসরি অ্যারে রেসপন্স এক্সপেক্ট করে
     res.status(200).json(orders);
   } catch (error: any) {
     console.error("❌ Get All Orders Error:", error);
@@ -156,22 +150,18 @@ export const getAllOrders = async (req: AuthenticatedRequest, res: Response): Pr
 
 /**
  * 📦 GET USER ORDERS (BACKWARD COMPATIBILITY)
- * Route: GET /api/v1/orders/my
- * Access: Private (Customer Only)
  */
 export const getUserOrders = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  // কোড ডুপ্লিকেশন এড়াতে সরাসরি আমাদের ফিল্টারড getAllOrders ফাংশনকে কল করে দেওয়া হলো
   return getAllOrders(req, res);
 };
 
 /**
- * 🔍 GET SINGLE ORDER WITH SECURITY CHECK
- * Route: GET /api/v1/orders/:id
+ * 🔍 GET SINGLE ORDER WITH SECURITY CHECK (VIEW DETAILS)
  */
 export const getSingleOrder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user?.id || req.user?.userId;
     const role = req.user?.role;
 
     if (!userId) {
@@ -195,7 +185,6 @@ export const getSingleOrder = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // 🔒 সিকিউরিটি চেক: কাস্টমার যেন অন্য কারো অর্ডারের আইডি ব্রাউজারে লিখে দেখতে না পারে
     if (role === "CUSTOMER" && order.customerId !== userId) {
       res.status(403).json({ success: false, message: "আপনার এই অর্ডারের ডিটেইলস দেখার অনুমতি নেই!" });
       return;
@@ -209,13 +198,11 @@ export const getSingleOrder = async (req: AuthenticatedRequest, res: Response): 
 
 /**
  * ❌ CANCEL ORDER (CUSTOMER)
- * Route: PATCH /api/v1/orders/:id/cancel (বা আপনার রাউট অনুযায়ী)
- * Access: Private (Customer Only)
  */
 export const cancelOrder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params; 
-    const customerId = req.user?.id; 
+    const customerId = req.user?.id || req.user?.userId; 
 
     if (!customerId) {
       res.status(401).json({ success: false, message: "ইউজার অথেনটিকেশন ব্যর্থ হয়েছে!" });
@@ -241,6 +228,7 @@ export const cancelOrder = async (req: AuthenticatedRequest, res: Response): Pro
       res.status(400).json({ success: false, message: "অর্ডারটি ইতিমধ্যে বাতিল করা হয়েছে।" });
       return;
     }
+    
     if (order.status === "SHIPPED" || order.status === "DELIVERED") {
       res.status(400).json({ success: false, message: "দুঃখিত, অর্ডারটি ইতিমধ্যে শিপড বা ডেলিভারি হয়ে গেছে!" });
       return;
@@ -250,11 +238,7 @@ export const cancelOrder = async (req: AuthenticatedRequest, res: Response): Pro
       for (const item of order.items) {
         await tx.medicine.update({
           where: { id: item.medicineId },
-          data: {
-            stock: {
-              increment: item.quantity
-            }
-          }
+          data: { stock: { increment: item.quantity } }
         });
       }
 
@@ -280,7 +264,6 @@ export const cancelOrder = async (req: AuthenticatedRequest, res: Response): Pro
 
 /**
  * 👑 UPDATE ORDER STATUS (ADMIN ONLY)
- * Route: PATCH /api/v1/orders/:id/status
  */
 export const updateOrderStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
