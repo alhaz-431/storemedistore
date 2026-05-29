@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-// ইউজারের ডেটা টাইপ ডিফাইন করা
+// ইউজারের ডেটা টাইপ ডিফাইন করা (id এবং userId দুটিই সাপোর্ট করবে)
 export interface AuthRequest extends Request {
   user?: {
-    userId: string;
+    id: string;     // 🎯 অর্ডারের কন্ট্রোলারের জন্য (req.user?.id)
+    userId: string; // 🎯 ওল্ড কন্ট্রোলার বা ব্যাকওয়ার্ড কম্প্যাটিবিলিটির জন্য (req.user?.userId)
     role: string;
     email: string;
   };
@@ -18,7 +19,7 @@ export const authMiddleware = (
   // ১. Authorization হেডার সংগ্রহ করা
   const authHeader = req.headers.authorization;
 
-  // ২. লগিং (ডিব্যাগিংয়ের জন্য)
+  // ২. লগিং (ডিব্যাগিংয়ের জন্য)
   console.log("--- Auth Check Start ---");
   console.log("Received Auth Header:", authHeader);
 
@@ -42,9 +43,10 @@ export const authMiddleware = (
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     console.log("Token Verified Successfully for User:", decoded.id);
 
-    // ৬. ইউজার অবজেক্ট সেট করা
+    // 🎯 ৬. ইউজার অবজেক্ট সেট করা (id এবং userId দুইটাই দিয়ে দিলাম যাতে কোনো কন্ট্রোলার না আটকে)
     req.user = {
-      userId: decoded.id,
+      id: decoded.id || decoded.userId,
+      userId: decoded.id || decoded.userId,
       role: decoded.role,
       email: decoded.email || "",
     };
@@ -62,7 +64,7 @@ export const authMiddleware = (
   }
 };
 
-// রোল চেকিং মিডেলওয়্যার
+// রোল চেকিং মিডেলওয়্যার
 export const checkRole = (...allowedRoles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
