@@ -71,3 +71,18 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Login failed", error: err.message });
   }
 };
+
+
+export const getMe = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.id; // মিডলওয়্যার থেকে ইউজার আইডি পাওয়া যাচ্ছে
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, role: true },
+    });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ user });
+  } catch (err: any) {
+    res.status(500).json({ message: "Error fetching profile" });
+  }
+};
