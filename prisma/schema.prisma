@@ -48,28 +48,28 @@ model Category {
 }
 
 model Medicine {
-  id           String    @id @default(uuid())
-  name         String
-  slug         String    @unique
-  description  String
-  price        Decimal
-  stock        Int
-  image        String?
-  manufacturer String
-  dosage       String?
-  expiryDate   DateTime?
+  id             String    @id @default(uuid())
+  name           String
+  slug           String    @unique
+  description    String?   // 👈 '?' যোগ করেছি (এখন এটি Optional)
+  price          Decimal
+  stock          Int
+  image          String?
+  manufacturer   String
+  dosage         String?
+  expiryDate     DateTime?
 
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId     String?   
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  sellerId String
-  seller   User @relation("SellerMedicines", fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerId       String
+  seller         User      @relation("SellerMedicines", fields: [sellerId], references: [id], onDelete: Cascade)
 
-  orderItems OrderItem[]
-  reviews    Review[]
+  orderItems     OrderItem[]
+  reviews        Review[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt // 👈 পুরোনো ৪টি ডাটা বাঁচানোর জন্য ডিফল্ট টাইমস্ট্যাম্প
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
 }
 
 model Order {

@@ -23,7 +23,7 @@ export const createMedicine = async (req: AuthRequest, res: Response) => {
         stock: parseInt(stock),
         manufacturer: manufacturer || "Unknown",
         image: image,
-        categoryId: categoryId || "cm9n6x4h10000abc123def", // যদি ক্যাটাগরি আইডি না থাকে, তবে এই ডিফল্ট আইডিটি কাজ করবে
+        categoryId: categoryId || "cm9n6x4h10000abc123def", 
         sellerId,
       },
     });
