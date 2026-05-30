@@ -16,7 +16,8 @@ export const createMedicine = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, error: "প্রয়োজনীয় ফিল্ডগুলো পূরণ করুন" });
     }
 
-    const image = req.file ? req.file.path : null; 
+    // 🎯 ক্লাউডিনারি থেকে আসা ইমেজ পাথ (URL)
+    const image = req.file ? (req.file as any).path : null; 
 
     const medicine = await prisma.medicine.create({
       data: {
@@ -26,7 +27,7 @@ export const createMedicine = async (req: AuthRequest, res: Response) => {
         price: parseFloat(price.toString()),
         stock: parseInt(stock.toString()),
         manufacturer: manufacturer || "Unknown",
-        image: image,
+        image: image, // এখানে Cloudinary URL সেভ হবে
         categoryId,
         sellerId,
       },
@@ -52,7 +53,8 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ success: false, error: "অনুমতি নেই" });
     }
 
-    const image = req.file ? req.file.path : existingMedicine.image;
+    // 🎯 ক্লাউডিনারি থেকে আসা নতুন ইমেজ পাথ অথবা আগের ইমেজ
+    const image = req.file ? (req.file as any).path : existingMedicine.image;
 
     const updatedMedicine = await prisma.medicine.update({
       where: { id },
@@ -61,7 +63,7 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
         description: description || undefined,
         price: price ? parseFloat(price.toString()) : undefined,
         stock: stock ? parseInt(stock.toString()) : undefined,
-        image: image,
+        image: image, // নতুন URL আপডেট হবে
         categoryId: categoryId || undefined,
       },
     });
@@ -72,7 +74,7 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ৩. সব মেডিসিন দেখা (Get All)
+// ৩, ৪ এবং ৫ নম্বর ফাংশনগুলো আগের মতোই থাকবে (নিচে দেওয়া হলো)
 export const getAllMedicines = async (req: Request, res: Response) => {
   try {
     const data = await prisma.medicine.findMany({
@@ -85,7 +87,6 @@ export const getAllMedicines = async (req: Request, res: Response) => {
   }
 };
 
-// ৪. একটি মেডিসিন দেখা (Get By Id)
 export const getMedicineById = async (req: Request, res: Response) => {
   try {
     const data = await prisma.medicine.findUnique({
@@ -99,7 +100,6 @@ export const getMedicineById = async (req: Request, res: Response) => {
   }
 };
 
-// ৫. মেডিসিন ডিলিট করা (Delete)
 export const deleteMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;

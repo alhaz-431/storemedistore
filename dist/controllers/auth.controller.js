@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = void 0;
+exports.updateProfile = exports.getMe = exports.login = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = require("../lib/prisma");
@@ -65,3 +65,40 @@ const login = async (req, res) => {
     }
 };
 exports.login = login;
+const getMe = async (req, res) => {
+    try {
+        const userId = req.user?.id; // মিডলওয়্যার থেকে ইউজার আইডি পাওয়া যাচ্ছে
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, name: true, email: true, role: true },
+        });
+        if (!user)
+            return res.status(404).json({ message: "User not found" });
+        res.json({ user });
+    }
+    catch (err) {
+        res.status(500).json({ message: "Error fetching profile" });
+    }
+};
+exports.getMe = getMe;
+// 👑 UPDATE PROFILE
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user?.id; // মিডলওয়্যারের মাধ্যমে প্রাপ্ত ইউজার আইডি
+        const { name } = req.body;
+        if (!name) {
+            return res.status(400).json({ message: "নাম প্রদান করা আবশ্যক।" });
+        }
+        const updatedUser = await prisma_1.prisma.user.update({
+            where: { id: userId },
+            data: { name },
+            select: { id: true, name: true, email: true, role: true },
+        });
+        res.json({ success: true, message: "প্রোফাইল আপডেট হয়েছে", user: updatedUser });
+    }
+    catch (err) {
+        console.error("❌ UPDATE PROFILE ERROR:", err);
+        res.status(500).json({ success: false, message: "প্রোফাইল আপডেট করা সম্ভব হয়নি" });
+    }
+};
+exports.updateProfile = updateProfile;
