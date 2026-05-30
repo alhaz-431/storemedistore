@@ -86,3 +86,28 @@ export const getMe = async (req: any, res: Response) => {
     res.status(500).json({ message: "Error fetching profile" });
   }
 };
+
+
+
+// 👑 UPDATE PROFILE
+export const updateProfile = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.id; // মিডলওয়্যারের মাধ্যমে প্রাপ্ত ইউজার আইডি
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "নাম প্রদান করা আবশ্যক।" });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { name },
+      select: { id: true, name: true, email: true, role: true },
+    });
+
+    res.json({ success: true, message: "প্রোফাইল আপডেট হয়েছে", user: updatedUser });
+  } catch (err: any) {
+    console.error("❌ UPDATE PROFILE ERROR:", err);
+    res.status(500).json({ success: false, message: "প্রোফাইল আপডেট করা সম্ভব হয়নি" });
+  }
+};
