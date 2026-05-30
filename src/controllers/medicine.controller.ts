@@ -74,7 +74,7 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ৩, ৪ এবং ৫ নম্বর ফাংশনগুলো আগের মতোই থাকবে (নিচে দেওয়া হলো)
+// ৩. সব মেডিসিন দেখা (Get All)
 export const getAllMedicines = async (req: Request, res: Response) => {
   try {
     const data = await prisma.medicine.findMany({
@@ -87,6 +87,7 @@ export const getAllMedicines = async (req: Request, res: Response) => {
   }
 };
 
+// ৪. আইডি দিয়ে মেডিসিন দেখা (Get By Id)
 export const getMedicineById = async (req: Request, res: Response) => {
   try {
     const data = await prisma.medicine.findUnique({
@@ -100,6 +101,7 @@ export const getMedicineById = async (req: Request, res: Response) => {
   }
 };
 
+// ৫. মেডিসিন ডিলিট করা (Delete)
 export const deleteMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
