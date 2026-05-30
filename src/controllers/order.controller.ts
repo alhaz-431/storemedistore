@@ -65,7 +65,7 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
   }
 };
 
-// 👑 GET ALL ORDERS (MULTI-ROLE)
+// 👑 GET ALL ORDERS (MULTI-ROLE) - UPDATED WITH CUSTOMER INFO
 export const getAllOrders = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id || req.user?.userId;
@@ -77,7 +77,14 @@ export const getAllOrders = async (req: AuthenticatedRequest, res: Response): Pr
 
     const orders = await prisma.order.findMany({
       where: queryCondition,
-      include: { items: { include: { medicine: true } } },
+      include: { 
+        items: { 
+          include: { medicine: true } 
+        },
+        customer: { 
+          select: { name: true, email: true } 
+        } 
+      },
       orderBy: { createdAt: "desc" }
     });
     res.status(200).json(orders);
@@ -97,7 +104,10 @@ export const getSingleOrder = async (req: AuthenticatedRequest, res: Response): 
     const { id } = req.params;
     const order = await prisma.order.findUnique({
       where: { id },
-      include: { items: { include: { medicine: true } } }
+      include: { 
+        items: { include: { medicine: true } },
+        customer: { select: { name: true, email: true } }
+      }
     });
     if (!order) { res.status(404).json({ message: "অর্ডার পাওয়া যায়নি" }); return; }
     res.status(200).json(order);
@@ -124,7 +134,7 @@ export const cancelOrder = async (req: AuthenticatedRequest, res: Response): Pro
       await tx.order.update({ where: { id }, data: { status: "CANCELLED" } });
     });
 
-    res.status(200).json({ success: true, message: "বাতিল হয়েছে" });
+    res.status(200).json({ success: true, message: "বাতিল হয়েছে" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -140,7 +150,7 @@ export const updateOrderStatus = async (req: AuthenticatedRequest, res: Response
 
     if (role === "SELLER") {
       const isOwner = await prisma.orderItem.findFirst({ where: { orderId: id, sellerId: userId } });
-      if (!isOwner) { res.status(403).json({ message: "এটি আপনার অর্ডার নয়!" }); return; }
+      if (!isOwner) { res.status(403).json({ message: "এটি আপনার অর্ডার নয়!" }); return; }
     }
 
     const updatedOrder = await prisma.order.update({ where: { id }, data: { status } });
