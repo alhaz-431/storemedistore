@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
+import { Request } from 'express'; // এক্সপ্রেস থেকে Request টাইপটি ইমপোর্ট করুন
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -13,8 +14,8 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'medistore_images',
     format: async () => 'jpg',
-    // আন্ডারস্কোর (_) দিয়ে বোঝালাম যে এই প্যারামিটারগুলো অব্যবহৃত
-    public_id: (_req: any, _file: any) => Date.now().toString(),
+    // এখানে টাইপগুলো স্পষ্টভাবে বলে দিলাম
+    public_id: (_req: Request, _file: Express.Multer.File) => Date.now().toString(),
   } as any,
 });
 
