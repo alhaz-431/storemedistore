@@ -3,9 +3,9 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
 
 cloudinary.config({
-  cloud_name: 'da55p8fpm',
-  api_key: 'আপনার_API_KEY_এখানে', // Cloudinary থেকে কপি করে দিন
-  api_secret: 'আপনার_API_SECRET_এখানে' // Cloudinary থেকে কপি করে দিন
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 const storage = new CloudinaryStorage({
@@ -13,7 +13,8 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'medistore_images',
     format: async () => 'jpg',
-    public_id: () => Date.now().toString(),
+    // আন্ডারস্কোর (_) দিয়ে বোঝালাম যে এই প্যারামিটারগুলো অব্যবহৃত
+    public_id: (_req: any, _file: any) => Date.now().toString(),
   } as any,
 });
 
