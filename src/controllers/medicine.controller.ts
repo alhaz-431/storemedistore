@@ -6,28 +6,33 @@ const prisma = new PrismaClient();
 
 export const createMedicine = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, price, stock, manufacturer, categoryId } = req.body;
+    const { name, price, stock, manufacturer } = req.body;
+    // এখানে কনসোল লগ দিয়ে দেখুন ব্যাকএন্ডে ডাটা আসছে কি না
+    console.log("Request Body:", req.body); 
+    console.log("User Data:", req.user);
+
     const sellerId = req.user?.userId;
-    if (!sellerId) return res.status(401).json({ error: "সেলার আইডি নেই" });
-    if (!name) return res.status(400).json({ error: "Name is required" });
+    if (!sellerId) return res.status(401).json({ error: "সেলার আইডি পাওয়া যায়নি" });
+
     const image = req.file ? (req.file as any).path : null;
 
     const medicine = await prisma.medicine.create({
       data: {
         name,
         slug: `${name.toLowerCase().replace(/ /g, "-")}-${Date.now()}`,
-        description: description || "No description",
         price: parseFloat(price) || 0,
         stock: parseInt(stock) || 0,
-        manufacturer: manufacturer || "Unknown",
+        manufacturer: manufacturer || "Generic",
         image: image,
-        categoryId: categoryId || "cm9n6x4h10000abc123def",
-        sellerId: sellerId as string,
+        categoryId: "cm9n6x4h10000abc123def", // নিশ্চিত করুন এই ID টি ডাটাবেসে আছে
+        sellerId: sellerId,
       },
     });
+
     res.status(201).json({ success: true, data: medicine });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: "সার্ভার এরর", details: error.message });
+    console.error("Backend Error:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
