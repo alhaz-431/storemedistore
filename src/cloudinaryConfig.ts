@@ -2,11 +2,11 @@ import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
 
-// এখানে তোমার আসল ভ্যালুগুলো বসিয়ে দিয়েছি
+// .env ফাইল থেকে ভ্যালুগুলো রিড করা হচ্ছে
 cloudinary.config({
-  cloud_name: 'da55p8fpm',
-  api_key: '563446485239195',
-  api_secret: 'o9zkb5OUqaNeVAnn3f9b5VYGvJo'
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 const storage = new CloudinaryStorage({

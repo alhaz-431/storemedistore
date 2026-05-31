@@ -11,11 +11,7 @@ import {
 
 const router = express.Router();
 
-/**
- * 📦 ORDER ROUTES
- * Middleware 'authMiddleware' ব্যবহার করা হয়েছে সব রাউটে, 
- * কারণ অর্ডার দেখার বা করার জন্য ইউজারকে অবশ্যই লগইন থাকতে হবে।
- */
+
 
 // ১. নতুন অর্ডার তৈরি করা (কাস্টমার)
 router.post("/", authMiddleware, createOrder);

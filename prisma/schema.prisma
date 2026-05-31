@@ -48,28 +48,24 @@ model Category {
 }
 
 model Medicine {
-  id             String    @id @default(uuid())
-  name           String
-  slug           String    @unique
-  description    String?   // 👈 '?' যোগ করেছি (এখন এটি Optional)
-  price          Decimal
-  stock          Int
-  image          String?
-  manufacturer   String?
-  dosage         String?
-  expiryDate     DateTime?
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  price        Decimal  // ফ্রন্টএন্ডে float/number হিসেবে পাঠালে হবে
+  stock        Int
+  image        String?
+  manufacturer String   // এটি অবশ্যই থাকতে হবে
+  description  String?  // এটি ঐচ্ছিক
+  
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id])
 
-  categoryId     String?   
-  category       Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  sellerId       String
-  seller         User      @relation("SellerMedicines", fields: [sellerId], references: [id], onDelete: Cascade)
-
-  orderItems     OrderItem[]
-  reviews        Review[]
-
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @default(now()) @updatedAt
+  sellerId     String
+  seller       User     @relation("SellerMedicines", fields: [sellerId], references: [id])
+orderItems   OrderItem[]
+reviews      Review[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Order {
