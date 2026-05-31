@@ -15,8 +15,7 @@ const router: Router = express.Router();
 router.get("/", getAllMedicines);
 router.get("/:id", getMedicineById);
 
-// প্রোটেক্টেড রুটস (সেলার/এডমিনদের জন্য)
-// ইমেজ আপলোডের জন্য সরাসরি cloudinary মিডলওয়্যার ব্যবহার করা হয়েছে
+
 router.post("/", authMiddleware, upload.single("image"), createMedicine);
 router.patch("/:id", authMiddleware, upload.single("image"), updateMedicine);
 router.delete("/:id", authMiddleware, deleteMedicine);

@@ -34,8 +34,11 @@ exports.createMedicine = createMedicine;
 const updateMedicine = async (req, res) => {
     try {
         const { id } = req.params;
+        // ১. এখানে লগগুলো চেক করুন
+        console.log("Updating ID:", id);
+        console.log("Body Data:", req.body);
+        console.log("File Data:", req.file); // ইমেজ ফাইল আসছে কি না সেটিও দেখা যাবে
         const { name, description, price, stock, manufacturer, categoryId } = req.body;
-        // ডাটা কনভার্সন নিরাপদ করা
         const updateData = {
             name,
             description,
@@ -43,15 +46,17 @@ const updateMedicine = async (req, res) => {
             categoryId,
             price: price !== undefined ? parseFloat(price) : undefined,
             stock: stock !== undefined ? parseInt(stock) : undefined,
-            image: req.file ? req.file.path : undefined
         };
-        // খালি ফিল্ড বা undefined ফিল্ডগুলো সরিয়ে ফেলা
+        if (req.file) {
+            updateData.image = req.file.path;
+        }
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
         const updatedMedicine = await prisma.medicine.update({ where: { id }, data: updateData });
         res.json({ success: true, data: updatedMedicine });
     }
     catch (error) {
-        console.error("Update Error:", error);
+        // ২. সার্ভারে যদি ক্র্যাশ করে, এখানে বিস্তারিত এরর দেখাবে
+        console.error("Backend Catch Error details:", error);
         res.status(500).json({ success: false, error: "আপডেট ব্যর্থ", details: error.message });
     }
 };

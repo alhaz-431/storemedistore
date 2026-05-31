@@ -55,7 +55,7 @@ model Medicine {
   price          Decimal
   stock          Int
   image          String?
-  manufacturer   String
+  manufacturer   String?
   dosage         String?
   expiryDate     DateTime?
 
