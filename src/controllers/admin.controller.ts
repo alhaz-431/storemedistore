@@ -29,9 +29,20 @@ export const toggleBanUser = async (req: Request, res: Response) => {
 
 // GET ALL ORDERS
 export const getAllOrders = async (req: Request, res: Response) => {
-  const orders = await prisma.order.findMany({
-    include: { items: true },
-  });
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        customer: { select: { name: true } }, // কাস্টমারের নাম
+        items: { 
+          include: { medicine: { select: { name: true } } } // মেডিসিনের নামসহ ডিটেইলস
+        }
+      },
+      orderBy: { createdAt: 'desc' } // নতুন অর্ডারগুলো আগে দেখাবে
+    });
 
-  res.json(orders);
+    res.json(orders);
+  } catch (error) {
+    console.error("Orders Error:", error);
+    res.status(500).json({ message: "Failed to fetch orders" });
+  }
 };
