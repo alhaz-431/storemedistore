@@ -38,14 +38,25 @@ export const updateMedicine = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, price, stock, manufacturer, categoryId } = req.body;
-    const image = req.file ? (req.file as any).path : undefined;
-    const updateData: any = { name, description, manufacturer, categoryId, price: parseFloat(price), stock: parseInt(stock), image };
     
+    // ডাটা কনভার্সন নিরাপদ করা
+    const updateData: any = { 
+      name, 
+      description, 
+      manufacturer, 
+      categoryId, 
+      price: price !== undefined ? parseFloat(price) : undefined, 
+      stock: stock !== undefined ? parseInt(stock) : undefined, 
+      image: req.file ? req.file.path : undefined 
+    };
+    
+    // খালি ফিল্ড বা undefined ফিল্ডগুলো সরিয়ে ফেলা
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
     
     const updatedMedicine = await prisma.medicine.update({ where: { id }, data: updateData });
     res.json({ success: true, data: updatedMedicine });
   } catch (error: any) {
+    console.error("Update Error:", error);
     res.status(500).json({ success: false, error: "আপডেট ব্যর্থ", details: error.message });
   }
 };

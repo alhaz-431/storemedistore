@@ -3,70 +3,52 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteMedicine = exports.getMedicineById = exports.getAllMedicines = exports.updateMedicine = exports.createMedicine = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
-// ১. মেডিসিন তৈরি করা (Create)
+// নতুন এই কোডটি এখানে বসান
 const createMedicine = async (req, res) => {
     try {
-        const { name, description, price, stock, manufacturer, categoryId } = req.body;
+        const { name, price, stock, manufacturer, categoryId } = req.body;
         const sellerId = req.user?.userId;
         if (!sellerId)
-            return res.status(401).json({ success: false, error: "সেলার আইডি পাওয়া যায়নি" });
-        if (!name || !price || !stock || !categoryId) {
-            return res.status(400).json({ success: false, error: "প্রয়োজনীয় ফিল্ডগুলো পূরণ করুন" });
-        }
-        const image = req.file ? req.file.path : null;
+            return res.status(401).json({ error: "সেলার আইডি পাওয়া যায়নি" });
+        const catId = categoryId || "cm9n6x4h10000abc123def";
         const medicine = await prisma.medicine.create({
             data: {
                 name,
                 slug: `${name.toLowerCase().replace(/ /g, "-")}-${Date.now()}`,
-                description: description || "No description",
-                price: parseFloat(price),
-                stock: parseInt(stock),
-                manufacturer: manufacturer || "Unknown",
-                image: image,
-                categoryId: categoryId,
-                sellerId,
+                price: Number(price) || 0,
+                stock: Number(stock) || 0,
+                manufacturer: manufacturer || "Generic",
+                image: req.file ? req.file.path : null,
+                categoryId: catId,
+                sellerId: sellerId,
             },
         });
-        res.status(201).json({ success: true, message: "মেডিসিন যোগ হয়েছে", data: medicine });
+        res.status(201).json({ success: true, data: medicine });
     }
     catch (error) {
-        console.error("Create Error:", error);
-        res.status(500).json({ success: false, error: "সার্ভার এরর", details: error.message });
+        console.error("Backend Error:", error);
+        res.status(500).json({ error: error.message || "সার্ভার এরর" });
     }
 };
 exports.createMedicine = createMedicine;
-// ২. মেডিসিন আপডেট করা (Update) - [সংশোধিত]
 const updateMedicine = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, description, price, stock, manufacturer, categoryId } = req.body;
-        const userId = req.user?.userId;
-        const existingMedicine = await prisma.medicine.findUnique({ where: { id } });
-        if (!existingMedicine)
-            return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
-        if (String(existingMedicine.sellerId) !== String(userId) && req.user?.role !== "ADMIN") {
-            return res.status(403).json({ success: false, error: "অনুমতি নেই" });
-        }
-        const image = req.file ? req.file.path : existingMedicine.image;
-        // নিরাপদ আপডেট ডাটা গঠন
-        const updateData = { image };
-        if (name)
-            updateData.name = name;
-        if (description)
-            updateData.description = description;
-        if (manufacturer)
-            updateData.manufacturer = manufacturer;
-        if (categoryId && categoryId !== "undefined")
-            updateData.categoryId = categoryId;
-        if (price !== undefined && price !== "")
-            updateData.price = parseFloat(price);
-        if (stock !== undefined && stock !== "")
-            updateData.stock = parseInt(stock);
-        const updatedMedicine = await prisma.medicine.update({
-            where: { id },
-            data: updateData,
-        });
-        res.json({ success: true, message: "আপডেট সফল", data: updatedMedicine });
+        // ডাটা কনভার্সন নিরাপদ করা
+        const updateData = {
+            name,
+            description,
+            manufacturer,
+            categoryId,
+            price: price !== undefined ? parseFloat(price) : undefined,
+            stock: stock !== undefined ? parseInt(stock) : undefined,
+            image: req.file ? req.file.path : undefined
+        };
+        // খালি ফিল্ড বা undefined ফিল্ডগুলো সরিয়ে ফেলা
+        Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+        const updatedMedicine = await prisma.medicine.update({ where: { id }, data: updateData });
+        res.json({ success: true, data: updatedMedicine });
     }
     catch (error) {
         console.error("Update Error:", error);
@@ -74,52 +56,18 @@ const updateMedicine = async (req, res) => {
     }
 };
 exports.updateMedicine = updateMedicine;
-// ৩. সব মেডিসিন দেখা (Get All)
 const getAllMedicines = async (req, res) => {
-    try {
-        const data = await prisma.medicine.findMany({
-            include: { category: true, seller: { select: { name: true } } },
-            orderBy: { createdAt: "desc" }
-        });
-        res.status(200).json({ success: true, data: data });
-    }
-    catch (err) {
-        res.status(500).json({ success: false, error: "ডাটা লোড হয়নি" });
-    }
+    const data = await prisma.medicine.findMany({ include: { category: true } });
+    res.json({ success: true, data });
 };
 exports.getAllMedicines = getAllMedicines;
-// ৪. আইডি দিয়ে মেডিসিন দেখা (Get By Id)
 const getMedicineById = async (req, res) => {
-    try {
-        const data = await prisma.medicine.findUnique({
-            where: { id: req.params.id },
-            include: { category: true }
-        });
-        if (!data)
-            return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
-        res.json({ success: true, data: data });
-    }
-    catch (err) {
-        res.status(500).json({ success: false, error: "সার্ভার এরর" });
-    }
+    const data = await prisma.medicine.findUnique({ where: { id: req.params.id } });
+    res.json({ success: true, data });
 };
 exports.getMedicineById = getMedicineById;
-// ৫. মেডিসিন ডিলিট করা (Delete)
 const deleteMedicine = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const userId = req.user?.userId;
-        const medicine = await prisma.medicine.findUnique({ where: { id } });
-        if (!medicine)
-            return res.status(404).json({ success: false, error: "মেডিসিন পাওয়া যায়নি" });
-        if (String(medicine.sellerId) !== String(userId) && req.user?.role !== "ADMIN") {
-            return res.status(403).json({ success: false, error: "অনুমতি নেই" });
-        }
-        await prisma.medicine.delete({ where: { id } });
-        res.json({ success: true, message: "ডিলিট সম্পন্ন" });
-    }
-    catch (err) {
-        res.status(500).json({ success: false, error: "ডিলিট করা সম্ভব হয়নি" });
-    }
+    await prisma.medicine.delete({ where: { id: req.params.id } });
+    res.json({ success: true, message: "ডিলিট সম্পন্ন" });
 };
 exports.deleteMedicine = deleteMedicine;

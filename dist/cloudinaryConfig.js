@@ -7,10 +7,11 @@ exports.upload = void 0;
 const cloudinary_1 = require("cloudinary");
 const multer_storage_cloudinary_1 = require("multer-storage-cloudinary");
 const multer_1 = __importDefault(require("multer"));
+// এখানে তোমার আসল ভ্যালুগুলো বসিয়ে দিয়েছি
 cloudinary_1.v2.config({
     cloud_name: 'da55p8fpm',
-    api_key: 'আপনার_API_KEY_এখানে', // Cloudinary থেকে কপি করে দিন
-    api_secret: 'আপনার_API_SECRET_এখানে' // Cloudinary থেকে কপি করে দিন
+    api_key: '563446485239195',
+    api_secret: 'o9zkb5OUqaNeVAnn3f9b5VYGvJo'
 });
 const storage = new multer_storage_cloudinary_1.CloudinaryStorage({
     cloudinary: cloudinary_1.v2,
