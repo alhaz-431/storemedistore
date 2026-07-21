@@ -15,7 +15,8 @@ const app: Application = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://storefrontend-ten.vercel.app"
+    "https://storefrontend-ten.vercel.app",
+     "https://gladiator-pharma-client.vercel.app"
   ],
   credentials: true
 }));
